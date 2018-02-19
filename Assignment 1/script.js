@@ -56,12 +56,12 @@ function(a) {
     yScale.domain([0, d3.max(avg_temp, d => d.value)]);
 
     g.append('g')
-        .attr('class', 'axis axis--x')
+        .attr('class', 'x axis')
         .attr('transform', `translate(0, ${height})`)
         .call(d3.axisBottom(xScale));
 
     g.append('g')
-        .attr('class', 'axis axis--y')
+        .attr('class', 'y axis')
         .call(d3.axisLeft(yScale).ticks(10, 's'))
      .append('text')
         .attr('transform', 'rotate(-90)')
@@ -97,9 +97,66 @@ function(a) {
     .text(d => d.value.toFixed(1));
 
 
-
-
-
+    window.focus()
+    d3.select(window)
+        .on('keydown', function() {
+            switch (d3.event.keyCode) {
+                case 37 : chosen_year = Math.max(year_min, chosen_year - 1); break;
+                case 39 : chosen_year = Math.min(year_max, chosen_year + 1); break;
+            }
+            update()
+        })
     
+    function update() {
+        console.log(chosen_year)
+
+        svg.select('text.title')
+            .text(chosen_year)
+
+        var temp_by_year = a.filter(d => d.year === chosen_year)
+                            .map(d => ({
+                                month: d.month,
+                                temperature: d.temperature
+                            }));
+
+        var avg_temp = d3.nest()
+                        .key(d => d.month)
+                        .rollup(v => d3.mean(v, d => d.temperature / 10))
+                        .entries(temp_by_year)
+
+        console.log(avg_temp)
+
+        yScale.domain([0, d3.max(avg_temp, d => d.value)]);
+
+        g.select('.y.axis')
+            .transition()
+            .call(d3.axisLeft(yScale));
+                            
+        g.selectAll(".bar")
+        .data(avg_temp).transition()
+            .attr("x", function(d) { return xScale(d.key); })
+            .attr("y", function(d) { return yScale(d.value); })
+            .attr("width", xScale.bandwidth())
+            .attr("height", function(d) { return height - yScale(d.value); });
+    
+        g.selectAll(".bartext")
+        .data(avg_temp)
+        .transition()
+        .attr("class", "bartext")
+        .attr("text-anchor", "middle")
+        .attr("fill", "black")
+        .attr("x", function(d) {
+            return xScale(d.key) + xScale.bandwidth() / 2;
+        })
+        .attr("y", function(d) {
+            return yScale(d.value + 0.2);
+        })
+        .text(d => d.value.toFixed(1));
+
+        
+
+    }
+
+
  }        
 );
